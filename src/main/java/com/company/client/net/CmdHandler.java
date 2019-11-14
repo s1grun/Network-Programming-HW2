@@ -1,10 +1,10 @@
-package com.company.client;
+package com.company.client.net;
 
+import com.company.client.net.Client;
 import com.company.common.Message;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
 

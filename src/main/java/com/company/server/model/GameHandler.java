@@ -1,4 +1,4 @@
-package com.company.server;
+package com.company.server.model;
 
 import com.company.common.Message;
 import com.company.common.Words;
