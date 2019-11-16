@@ -1,6 +1,5 @@
 package com.company.client.net;
 
-import com.company.client.net.Client;
 import com.company.common.Message;
 
 import java.io.DataOutputStream;
@@ -13,12 +12,12 @@ import java.util.Scanner;
  */
 public class CmdHandler implements Runnable {
     Socket socket;
-    Client client;
+    Connection client;
 
     private Scanner console = new Scanner(System.in);
     boolean status = true;
 
-    CmdHandler(Socket socket, Client client){
+    CmdHandler(Socket socket, Connection client){
         this.socket = socket;
         this.client = client;
 

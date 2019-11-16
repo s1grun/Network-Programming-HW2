@@ -71,16 +71,21 @@ public class Server {
                     key.interestOps(SelectionKey.OP_WRITE);
 
                 } else if (key.isWritable()) {
-                    Thread.currentThread().sleep(10000);
+//                    Thread.currentThread().sleep(10000);
+
                     SocketChannel channel = (SocketChannel) key.channel();
                     ByteBuffer buffer = (ByteBuffer) key.attachment();
+//                    System.out.println("wirtable "+buffer.toString());
                     buffer.flip();
                     channel.write(buffer);
                     if(buffer.hasRemaining()) {
+
                         buffer.compact();
                     } else {
+
                         buffer.clear();
                         key.interestOps(SelectionKey.OP_READ);
+//                        System.out.println(2);
                     }
                     buffer.clear();
                 }

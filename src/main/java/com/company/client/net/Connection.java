@@ -1,18 +1,16 @@
 package com.company.client.net;
 
-import com.company.client.ClientView;
-import com.company.common.Message;
-import com.company.common.Serialize;
+import com.company.client.view.ClientView;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.channels.spi.AbstractSelector;
-import java.nio.channels.spi.SelectorProvider;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.Scanner;
+//import java.util.StringJoiner;
 
 /**
  * The Client class handles the messages received from the Server.
@@ -22,31 +20,33 @@ import java.util.Scanner;
  *
  */
 
-public class Client {
+public class Connection {
     public String token = null;
     private Selector selector;
     private SocketChannel socketChannel;
     private static BufferedReader input = null;
     public Scanner scan = new Scanner(System.in);
-
-    public static void main(String[] args)
-    {
-
-        Client client = new Client();
-        client.startClient(client);
+    private ByteBuffer bufferFromServer;
+    private final Queue<ByteBuffer> messagesToSend = new ArrayDeque<>();
 
 
-    }
+//    public static void main(String[] args)
+//    {
+//
+//        Connection client = new Connection();
+//        client.startClient(client);
+//
+//
+//    }
 
     public String getToken(){
         return token;
     }
 
     /**
-     * Start a new client socket to receive messages
-     * @param client
+     * Start a new client socket to receive message
      */
-    public void startClient(Client client){
+    public void startClient(){
 
         try {
             init();
@@ -69,19 +69,25 @@ public class Client {
                         channel.read(buffer);
                         String outcome = new String(buffer.array()).trim();
                         System.out.println("Message was received from server:" + outcome);
+//                        new ClientView(outcome);
+//                        buffer.clear();
                         key.interestOps(SelectionKey.OP_WRITE);
 
                     } else if (key.isWritable()) {
                         System.out.println("write down message:" );
 
                         String msg = scan.nextLine();
-//                        System.out.println(msg);
                         if(!msg.equals("")){
-                            SocketChannel channel = (SocketChannel) key.channel();
-                            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
-                            channel.write(buffer);
-                            key.interestOps(SelectionKey.OP_READ);
+                            sendMsg(msg);
                         }
+//                        System.out.println(msg);
+//                        if(!msg.equals("")){
+//                            SocketChannel channel = (SocketChannel) key.channel();
+//                            ByteBuffer buffer = ByteBuffer.wrap(msg.getBytes());
+//                            channel.write(buffer);
+//                            key.interestOps(SelectionKey.OP_READ);
+//                        }
+                        sendToServer(key);
 
 
                     }
@@ -148,6 +154,36 @@ public class Client {
 //        } catch (Exception e){
 //            System.err.println("Exception :"+e);
 //        }*/
+    }
+
+    public void sendMsg(String msg) {
+//        StringJoiner joiner = new StringJoiner(Constants.MSG_TYPE_DELIMETER);
+//        for (String part : parts) {
+//            joiner.add(part);
+//        }
+//        String messageWithLengthHeader = MessageSplitter.prependLengthHeader(joiner.toString());
+//        synchronized (messagesToSend) {
+//            messagesToSend.add(ByteBuffer.wrap(messageWithLengthHeader.getBytes()));
+//        }
+//        timeToSend = true;
+//        selector.wakeup();
+        synchronized (messagesToSend) {
+            messagesToSend.add(ByteBuffer.wrap(msg.getBytes()));
+        }
+    }
+
+    private void sendToServer(SelectionKey key) throws IOException {
+        ByteBuffer msg;
+        synchronized (messagesToSend) {
+            while ((msg = messagesToSend.peek()) != null) {
+                socketChannel.write(msg);
+                if (msg.hasRemaining()) {
+                    return;
+                }
+                messagesToSend.remove();
+            }
+            key.interestOps(SelectionKey.OP_READ);
+        }
     }
 
     private void init() throws IOException {

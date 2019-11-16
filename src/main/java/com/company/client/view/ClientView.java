@@ -1,4 +1,4 @@
-package com.company.client;
+package com.company.client.view;
 
 import com.company.common.Message;
 
@@ -22,6 +22,9 @@ public class ClientView {
                 break;
             case "finish":
                 System.out.println("game finish, score: "+ body + " new game start!");
+                break;
+            default:
+                System.out.println("from server:" + msg.toString());
         }
 
     }
