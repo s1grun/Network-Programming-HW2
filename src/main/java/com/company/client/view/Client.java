@@ -17,7 +17,9 @@ public class Client {
     {
 
         Client client= new Client();
-        client.startClient();
+        client.connection = new Connection();
+        new Thread(client.connection).start();
+        client.start();
 
 
     }
@@ -26,11 +28,12 @@ public class Client {
 
 
 
-    public void startClient(){
-        connection = new Connection();
-        connection.startClient();
+    public void start(){
+
+
         while (status) {
             try {
+//                System.out.println(console);
                 String cmd= console.nextLine();
                 String cmd_type = cmd.split(" ")[0];
 
@@ -40,16 +43,19 @@ public class Client {
 //                        Message.sendMsg(output,new Message("disconnect", "", client.getToken()));
 //                        status = false;
 //                        socket.close();
-
+                        connection.sendMsg("disconnect","");
+                        status = false;
                         break;
                     case "try":
                         String cmd_text = cmd.split(" ")[1];
 //                        Message.sendMsg(output,new Message("try", cmd_text, client.getToken()));
-                        connection.sendMsg(cmd_text);
+                        connection.sendMsg("try",cmd_text);
+//                        System.out.println(cmd_text);
                         break;
-                    case "login":
+                    case "start":
 //                        String ctext = cmd.split(" ")[1];
 //                        Message.sendMsg(output,new Message("login", ctext));
+                        connection.sendMsg("start","");
                         break;
                     default:
                         System.out.println("Unknown command");

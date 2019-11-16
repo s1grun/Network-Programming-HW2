@@ -24,7 +24,7 @@ public class ClientView {
                 System.out.println("game finish, score: "+ body + " new game start!");
                 break;
             default:
-                System.out.println("from server:" + msg.toString());
+                System.out.println("from server:" + msg.getType()+msg.getBody());
         }
 
     }
