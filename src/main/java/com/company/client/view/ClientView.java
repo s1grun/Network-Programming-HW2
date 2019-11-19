@@ -23,8 +23,11 @@ public class ClientView {
             case "finish":
                 System.out.println("game finish, score: "+ body + " new game start!");
                 break;
+            case "err":
+                System.out.println("err from server: "+ body );
+                break;
             default:
-                System.out.println("from server:" + msg.getType()+msg.getBody());
+                System.out.println("unmatch msg from server:" + msg.getType()+msg.getBody());
         }
 
     }

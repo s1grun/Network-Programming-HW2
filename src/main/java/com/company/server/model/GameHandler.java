@@ -4,14 +4,13 @@ import com.company.common.GetWords;
 import com.company.common.Message;
 import com.company.common.Words;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 /**
  * The GameHandler class handles the logic of the hangman game
  */
-public class GameHandler {
+public class GameHandler{
 
 
     private int score;
@@ -49,6 +48,9 @@ public class GameHandler {
         }
         return w;
     }
+
+
+
 
 
     public String getWord() {
@@ -142,6 +144,7 @@ public class GameHandler {
         Message w = new Message("update", str);
         return w;
     }
+
 
 
 }

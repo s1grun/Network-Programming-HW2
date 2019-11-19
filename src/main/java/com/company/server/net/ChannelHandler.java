@@ -18,22 +18,23 @@ import java.util.concurrent.ForkJoinPool;
  * The ChannelHandler class handles the game for each client
  */
 
-public class ChannelHandler {
+public class ChannelHandler implements Runnable {
     private Server server;
     public SocketChannel channel;
     private int score;
     GameHandler game = null;
 //    Key key;
-    SelectionKey key;
+    SelectionKey skey;
     boolean status = true;
     private ByteBuffer clientMessage = ByteBuffer.allocateDirect(1024);
     private Queue<Message> readQueue = new ArrayDeque<>();
     private Queue<byte[]> sendQueue =new ArrayDeque<byte[]>();
+    private Queue<Message> blockTaskQueue = new ArrayDeque<>();
 
-    public ChannelHandler(Server server, SocketChannel channel, SelectionKey key){
+    public ChannelHandler(Server server, SocketChannel channel){
         this.server = server;
         this.channel = channel;
-        this.key = key;
+//        this.skey = skey;
     }
 
     public void readMsg() throws IOException, InterruptedException {
@@ -46,9 +47,9 @@ public class ChannelHandler {
         byte[] bytes = new byte[clientMessage.remaining()];
         clientMessage.get(bytes);
 
-        synchronized(readQueue){
-            readQueue.add((Message) Serialize.toObject(bytes));
-        }
+//        synchronized(readQueue){
+        readQueue.add((Message) Serialize.toObject(bytes));
+//        }
 
 
 //        ForkJoinPool.commonPool().execute(this);
@@ -62,27 +63,44 @@ public class ChannelHandler {
             Message msg = readQueue.poll();
             String type = msg.getType();
             String body = msg.getBody();
-            System.out.println("From "+key+" "+msg.getType()+msg.getBody());
+            System.out.println("From "+skey+" "+msg.getType()+' '+msg.getBody());
 
             switch (type){
                 case "try":
+//                    System.out.println(game);
+//                    System.out.println(game.equals(null));
+                    if(game==null){
+                        Message start_msg = new Message("err","use 'start' command to start the game!" );
+                        writeSendQueue(start_msg);
+                        System.out.println("send err");
+                        break;
+                    }
                     String str = body.toLowerCase();
                     Message res =  game.guess(str);
                     writeSendQueue(res);
                     if(res.getType().equals("finish")){
-                        this.score = Integer.valueOf(res.getBody());
-                        game = new GameHandler(score);
-                        Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()) );
-                        writeSendQueue(start_msg);
+                        synchronized (blockTaskQueue){
+                            blockTaskQueue.add(res);
+                            ForkJoinPool.commonPool().execute(this);
                         }
+//                        this.score = Integer.valueOf(res.getBody());
+//                        game = new GameHandler(score);
+//                        Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()) );
+//                        writeSendQueue(start_msg);
+                    }
 
                     break;
                 case "start":
-                    game = new GameHandler(score);
-                    Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()));
-                    writeSendQueue(start_msg);
+//                    game = new GameHandler(score);
+//                    Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()));
+//                    writeSendQueue(start_msg);
+                    synchronized (blockTaskQueue){
+                        blockTaskQueue.add(msg);
+                        ForkJoinPool.commonPool().execute(this);
+                    }
+
                     break;
-                case "quit":
+                case "disconnect":
                     disconnect();
                     break;
                 default:
@@ -91,34 +109,108 @@ public class ChannelHandler {
             }
 
 
-
-
-            try {
-                writeSendQueue(msg);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
 
 
     }
+    @Override
+    public void run() {
+        synchronized (blockTaskQueue){
+            while (blockTaskQueue.size()>0){
+                Message msg = blockTaskQueue.poll();
+                String type = msg.getType();
+//            String body = msg.getBody();
 
+                if (type.equals("start")){
+//                    try {
+//                        Thread.currentThread().sleep(10000);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+                    game = new GameHandler(score);
+                    Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()));
+                    try {
+                        writeSendQueue(start_msg);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }else if(type.equals("finish")){
+                    this.score = Integer.valueOf(msg.getBody());
+                    game = new GameHandler(score);
+                    Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()) );
+                    try {
+                        writeSendQueue(start_msg);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+    }
 //    @Override
 //    public void run() {
-//        synchronized(readQueue){
-//            while (readQueue.size()>0){
-//                System.out.println(readQueue);
+//
+//        while (readQueue.size()>0){
+////            System.out.println(readQueue);
 //                Message msg = readQueue.poll();
 //                String type = msg.getType();
-//    //            String body = msg.getBody();
-//                System.out.println("From "+key+" "+msg.getType()+msg.getBody());
-//                try {
-//                    writeSendQueue(msg);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
+//                String body = msg.getBody();
+//                System.out.println("From "+skey+" "+msg.getType()+' '+msg.getBody());
+//
+//                switch (type){
+//                    case "try":
+//                        String str = body.toLowerCase();
+//                        Message res = null;
+//                        try {
+//                            res = game.guess(str);
+//                            writeSendQueue(res);
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//
+//                        if(res.getType().equals("finish")){
+//                            this.score = Integer.valueOf(res.getBody());
+//                            game = new GameHandler(score);
+//                            Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()) );
+//                            try {
+//                                writeSendQueue(start_msg);
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//
+//                        break;
+//                    case "start":
+////                        System.out.println("run start");
+//                        game = new GameHandler(score);
+//                        Message start_msg = new Message("update",game.getUnderline()+","+Integer.toString(game.getCounter())+","+Integer.toString(game.getScore()));
+//                        try {
+//                            writeSendQueue(start_msg);
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                        break;
+//                    case "disconnect":
+//                        disconnect();
+//                        break;
+//                    default:
+//                        System.out.println("no match type "+type+" "+ msg.getBody());
+//                        break;
 //                }
+//
+//
+//
+//
+////                try {
+////                    writeSendQueue(msg);
+////                } catch (IOException e) {
+////                    e.printStackTrace();
+////                }
 //            }
-//        }
+////        }
 //
 //    }
 
@@ -130,15 +222,17 @@ public class ChannelHandler {
             sendQueue.add(bytes);
         }
 
-//        System.out.println("set time to send");
+//        System.out.println("write into queue, size:"+sendQueue.size());
 //        System.out.println(key.isWritable());
 //        server.addKey(key);
 //        server.wakeupSelector(key);
+        server.timeToSend = true;
+        server.wakeupSelector(skey);
 
     }
 
     public void sendMessage() throws IOException {
-//        System.out.println("send");
+//        System.out.println("send msg to client");
         synchronized (sendQueue) {
             while (sendQueue.size() > 0) {
                 ByteBuffer message = ByteBuffer.wrap(sendQueue.poll());

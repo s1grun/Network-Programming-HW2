@@ -105,7 +105,8 @@ public class Connection implements Runnable{
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
+            System.out.println("disconnect");
         }
 
 

@@ -11,7 +11,7 @@ import java.util.Random;
 /**
  * The Words class is used to generate words for the game
  */
-public class Words {
+public class Words{
     public static String getWord() throws IOException {
         File file = new File("./words.txt");
 
@@ -28,4 +28,6 @@ public class Words {
 
         return select_word;
     }
+
+
 }

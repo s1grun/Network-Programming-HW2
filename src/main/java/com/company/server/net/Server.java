@@ -13,6 +13,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The Server class handles the logic of creating a server socket and connect to the client socket.
@@ -22,7 +23,7 @@ public class Server {
 
     Selector selector;
     boolean timeToSend = false;
-    private final Queue<SelectionKey> sendKey = new ArrayDeque<>();
+    private LinkedBlockingQueue<SelectionKey> sendKey = new LinkedBlockingQueue<>();
     public static void main(String[] args){
         try{
 
@@ -50,31 +51,38 @@ public class Server {
 
             System.out.println("server start at 3001");
             while (true) {
-//            if (!sendKey.isEmpty()) {
-//
-////                sendKey.poll().interestOps(SelectionKey.OP_WRITE);
-//
-////                System.out.println(sendKey.poll().interestOps(SelectionKey.OP_WRITE));
-//            }
+            if (timeToSend) {
+                SelectionKey _k = sendKey.poll();
+                if(_k.isValid()){
+                    _k.interestOps(SelectionKey.OP_WRITE);
+                }
+
+//                writeOperationForAllActiveClients(sendKey.poll());
+//                System.out.println(sendKey.poll().interestOps(SelectionKey.OP_WRITE));
+            }
 
 
                 selector.select();
                 Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
                 while (keys.hasNext()) {
+
                     SelectionKey key = keys.next();
+//                    System.out.println("kkkkkkk"+key);
                     keys.remove();
 
                     if (!key.isValid()) {
                         continue;
                     }
 
+
                     if (key.isAcceptable()) {
                         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
                         SocketChannel channel = serverSocketChannel.accept();
 
                         channel.configureBlocking(false);
-                        ChannelHandler handler = new ChannelHandler(this, channel, key);
-                        channel.register(selector, SelectionKey.OP_WRITE, handler);
+                        ChannelHandler handler = new ChannelHandler(this, channel);
+                        SelectionKey clientKey =channel.register(selector, SelectionKey.OP_READ, handler);
+                        handler.skey = clientKey;
                         channel.setOption(StandardSocketOptions.SO_LINGER, 5000);
 
                     } else if (key.isReadable()) {
@@ -86,16 +94,22 @@ public class Server {
 //                    System.out.println("Message was received from c:" + outcome);
 ////                    buffer.clear();
 //                    key.interestOps(SelectionKey.OP_WRITE);
-//                        System.out.println("readable");
+//                        System.out.println("i'm readinng");
                         ChannelHandler handler = (ChannelHandler) key.attachment();
                         try{
                             handler.readMsg();
-                            key.interestOps(SelectionKey.OP_WRITE);
-                            selector.wakeup();
+//                            System.out.println("end of reading");
+//                            while (timeToSend){
+//                                System.out.println("time to send");
+//                                key.interestOps(SelectionKey.OP_WRITE);
+//                                System.out.println("is writeable,"+ key.isWritable());
+//                                timeToSend = false;
+//                            }
+
                         }catch (Exception e) {
 //                            System.err.println("loss connection");
                         }
-
+//                        System.out.println("end of reading");
                     } else if (key.isWritable()) {
 //                    Thread.currentThread().sleep(10000);
 
@@ -114,16 +128,20 @@ public class Server {
 ////                        System.out.println(2);
 //                    }
 //                    buffer.clear();
+//                        System.out.println("i'm writing");
                         ChannelHandler handler = (ChannelHandler) key.attachment();
 //                    Thread.currentThread().sleep(10000);
                         handler.sendMessage();
                         key.interestOps(SelectionKey.OP_READ);
+                        timeToSend=false;
+//                        System.out.println("end of writing");
 
                     }
                 }
 
             }
         } catch (Exception e) {
+            e.printStackTrace();
             System.err.println("Server failure.");
         }
 
@@ -146,7 +164,16 @@ public class Server {
 //        sendKey.add(skey);
 //    }
 
-
+//    private void writeOperationForAllActiveClients(SelectionKey akey) {
+//        System.out.println("akey "+akey);
+//        for (SelectionKey key : selector.keys()) {
+//
+//            if (key.channel() instanceof SocketChannel && key.isValid()) {
+//                System.out.println(key);
+//                key.interestOps(SelectionKey.OP_WRITE);
+//            }
+//        }
+//    }
 
 
 
