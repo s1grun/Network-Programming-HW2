@@ -1,5 +1,6 @@
 package com.company.server.model;
 
+import com.company.common.GetWords;
 import com.company.common.Message;
 import com.company.common.Words;
 
@@ -41,7 +42,8 @@ public class GameHandler {
     private String generateWord(){
         String w = null;
         try {
-            w = Words.getWord().toLowerCase();
+//            w = Words.getWord().toLowerCase();
+              w = GetWords.word().toLowerCase();
         } catch (IOException e) {
             e.printStackTrace();
         }
