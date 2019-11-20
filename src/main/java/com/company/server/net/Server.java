@@ -39,6 +39,15 @@ public class Server {
         }
     }
 
+    /**
+     * In the server function we create the selector object and
+     * ServerSocketChannel instance, which listens to the new connection request from the client.
+     * We configure the channel to a non blocking state. Then we bound the channel to a port number so
+     * the client socket can communicate to it.
+     * Register a channel with the accept operation.
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private void server() throws IOException, InterruptedException {
         //ServerSocket serverSocket =new ServerSocket (3001);
         try{
@@ -56,11 +65,7 @@ public class Server {
                 if(_k.isValid()){
                     _k.interestOps(SelectionKey.OP_WRITE);
                 }
-
-//                writeOperationForAllActiveClients(sendKey.poll());
-//                System.out.println(sendKey.poll().interestOps(SelectionKey.OP_WRITE));
             }
-
 
                 selector.select();
                 Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
@@ -74,7 +79,10 @@ public class Server {
                         continue;
                     }
 
-
+                    /**
+                     * When we establish a client connection, we create a channel and attach the handler
+                     * with the channel. The key is used for communication, to decide if the operation for the channel.
+                     */
                     if (key.isAcceptable()) {
                         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
                         SocketChannel channel = serverSocketChannel.accept();
@@ -83,58 +91,22 @@ public class Server {
                         ChannelHandler handler = new ChannelHandler(this, channel);
                         SelectionKey clientKey =channel.register(selector, SelectionKey.OP_READ, handler);
                         handler.skey = clientKey;
-                        channel.setOption(StandardSocketOptions.SO_LINGER, 5000);
+                        //channel.setOption(StandardSocketOptions.SO_LINGER, 5000);
 
                     } else if (key.isReadable()) {
-//                    SocketChannel channel = (SocketChannel) key.channel();
-//                    ByteBuffer buffer = (ByteBuffer) key.attachment();
-//                    channel.read(buffer);
-////                    key.interestOps(SelectionKey.OP_WRITE);
-//                    String outcome = new String(buffer.array()).trim();
-//                    System.out.println("Message was received from c:" + outcome);
-////                    buffer.clear();
-//                    key.interestOps(SelectionKey.OP_WRITE);
-//                        System.out.println("i'm readinng");
                         ChannelHandler handler = (ChannelHandler) key.attachment();
                         try{
                             handler.readMsg();
-//                            System.out.println("end of reading");
-//                            while (timeToSend){
-//                                System.out.println("time to send");
-//                                key.interestOps(SelectionKey.OP_WRITE);
-//                                System.out.println("is writeable,"+ key.isWritable());
-//                                timeToSend = false;
 //                            }
 
                         }catch (Exception e) {
 //                            System.err.println("loss connection");
                         }
-//                        System.out.println("end of reading");
                     } else if (key.isWritable()) {
-//                    Thread.currentThread().sleep(10000);
-
-//                    SocketChannel channel = (SocketChannel) key.channel();
-//                    ByteBuffer buffer = (ByteBuffer) key.attachment();
-////                    System.out.println("wirtable "+buffer.toString());
-//                    buffer.flip();
-//                    channel.write(buffer);
-//                    if(buffer.hasRemaining()) {
-//
-//                        buffer.compact();
-//                    } else {
-//
-//                        buffer.clear();
-//                        key.interestOps(SelectionKey.OP_READ);
-////                        System.out.println(2);
-//                    }
-//                    buffer.clear();
-//                        System.out.println("i'm writing");
                         ChannelHandler handler = (ChannelHandler) key.attachment();
-//                    Thread.currentThread().sleep(10000);
                         handler.sendMessage();
                         key.interestOps(SelectionKey.OP_READ);
                         timeToSend=false;
-//                        System.out.println("end of writing");
 
                     }
                 }
@@ -148,34 +120,16 @@ public class Server {
     }
 
 
-
-
+    /**
+     * The wakeupSelector function - For read operation we need to wake up the selector
+     * @param skey
+     */
 
     public void wakeupSelector(SelectionKey skey){
-//        selector.selectedKeys().add(key);
-
-//        skey.interestOps(SelectionKey.OP_WRITE);
-//        System.out.println(skey.isWritable());
         sendKey.add(skey);
         selector.wakeup();
 
     }
-//    public void addKey(SelectionKey skey){
-//        sendKey.add(skey);
-//    }
-
-//    private void writeOperationForAllActiveClients(SelectionKey akey) {
-//        System.out.println("akey "+akey);
-//        for (SelectionKey key : selector.keys()) {
-//
-//            if (key.channel() instanceof SocketChannel && key.isValid()) {
-//                System.out.println(key);
-//                key.interestOps(SelectionKey.OP_WRITE);
-//            }
-//        }
-//    }
-
-
 
 
 }

@@ -1,8 +1,7 @@
 package com.company.server.model;
 
-import com.company.common.GetWords;
+import com.company.server.controller.GetWords;
 import com.company.common.Message;
-import com.company.common.Words;
 
 import java.io.IOException;
 import java.util.ArrayList;
